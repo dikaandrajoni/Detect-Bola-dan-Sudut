@@ -11,7 +11,7 @@ hsvColorBounds['red'] = (np.array([0, 153, 127],np.uint8), np.array([4, 230, 179
 hsvColorBounds['orange'] = (np.array([15, 204, 204],np.uint8), np.array([20, 255, 255],np.uint8))
 hsvColorBounds['darkYellow'] = (np.array([20, 115, 140],np.uint8), np.array([25, 205, 230],np.uint8))
 hsvColorBounds['darkYellowAttempt2(isolating)'] = (np.array([20, 90, 117],np.uint8), np.array([32, 222, 222],np.uint8))
-hsvColorBounds['orange2'] = (np.array([2, 150, 140],np.uint8), np.array([19, 255, 204],np.uint8))
+hsvColorBounds['orange2'] = (np.array([0, 99, 102],np.uint8), np.array([16, 255, 255],np.uint8))
 
 sisia=0
 sisib=0
@@ -32,9 +32,8 @@ UP_P = np.array([15, 255, 255])
 cap = cv2.VideoCapture(0)
 
 def smoothNoise(frame):
-    kernel = np.ones((3,3)).astype(np.uint8)
-    frame = cv2.erode(frame, kernel)
-    frame = cv2.dilate(frame, kernel)
+    
+    
 
     return frame
 
@@ -71,7 +70,6 @@ def cariSudut(contour,frame):
     if(cx==0):
         cx=1
     sudut = round(math.atan2(cx,cy)*180/math.pi)
-    sudut=degree(sudut)
     print(sudut)
 
     return sudut
@@ -88,17 +86,24 @@ def cariSudutDeteksi(contour,frame):
         cx,cy = int(M['m10']/M['m00']), int(M['m01']/M['m00'])
         cv2.circle(frame,(cx,cy),5,(0,0,255),3)
         #cv2.imshow("Frame", frame)
-
+        
+    x=cy
+    y=cy
     
-
     cx=cx-(640/2)
     cy=cy-(480/2)
 
     if(cx==0):
         cx=1
 
-    sudut = round(math.atan2(cx,cy)*180/math.pi)
-    sudut=degree(sudut)
+    
+    distance = (2 * 3.14 * 180) / (x+ y * 360) * 1000 + 3 ### Distance measuring in Inch
+    cm = distance * 2.54
+    print(cm)
+    sudut = round(math.degrees(math.atan2(cx,cy))*180/math.pi)
+    
+    posisiBola = str("Posisi Bola {0}".format(sudut))
+    cv2.putText(frame,posisiBola,(10,10),fo,0.5,w)
     print(sudut)
 
     return sudut
@@ -107,8 +112,13 @@ def cariSudutDeteksi(contour,frame):
     
 
 def cariBola(frame,color):
+    hsv=cv2.cvtColor(frame,cv2.COLOR_BGR2HSV)
+    kernel = np.ones((3,3)).astype(np.uint8)
     colorBall=hsvColorBounds[color]
-    mask = cv2.inRange(frame, colorBall[0], colorBall[1])
+    mask = cv2.inRange(hsv, colorBall[0], colorBall[1])
+    
+    mask = cv2.erode(mask, kernel)
+    mask = cv2.dilate(mask, kernel)
     contours, hierarcy = cv2.findContours(mask.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
     #Return jika tidak ada contour yang ditemukan
     
@@ -117,14 +127,16 @@ def cariBola(frame,color):
         return ''
     else:
         cv2.imshow("Masked Bola",mask)
+    
+
 
     #Cari contour terbesar
     contour=max(contours, key=cv2.contourArea)
-    return cariSudut(contour, frame)
+    return cariSudutDeteksi(contour, frame)
 
-def cariPartner(frame):
-
-    mask = cv2.inRange(frame, LW_P, UP_P)
+def cariPartner(frame,color):
+    colorBall=hsvColorBounds[color]
+    mask = cv2.inRange(frame, colorBall[0], colorBall[1])
     contours, hierarcy = cv2.findContours(mask.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
     #Return jika tidak ada contour yang ditemukan
     
@@ -150,16 +162,11 @@ def cariPartner(frame):
 
 while True:
     ret, frame = cap.read(0)
+    frame=smoothNoise(frame)
 
-    bola = cariBola(frame,'orange')
-    partner = cariPartner(frame)
+    bola = cariBola(frame,'red')
+    partner = cariPartner(frame,'yellow')
 
-    sudut=0
-    suduts=0
-    posisiBola = str("Posisi Bola {0}".format(sudut))
-    posisiPartner = str("Posisi Partner {0}".format(suduts))
-    cv2.putText(frame,posisiBola,(10,10),fo,0.5,w)
-    cv2.putText(frame,posisiPartner,(10,30),fo,0.5,w)
     cv2.imshow("Frame on Detect",frame)
     
     key = cv2.waitKey(1) & 0xFF
