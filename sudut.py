@@ -19,8 +19,6 @@ sisic=0
 x=0
 y=0
 
-sudut=0
-suduts=0
 
 fo = cv2.FONT_HERSHEY_DUPLEX
 w = (200,200,0)
@@ -48,8 +46,8 @@ def distance4D(p, q, r, s):
 
 # A function of position to find difference
 # between two values (2D distance)
-def distance2D(p, q):
-    dist = math.sqrt((p[0]-q[0])**2 + (p[1]-q[1])**2)
+def distance2D(x,y):
+    dist = math.sqrt((x[0]-y[0])**2 + (x[1]-y[1])**2)
     return dist
 
 
@@ -73,6 +71,7 @@ def cariSudut(contour,frame):
     if(cx==0):
         cx=1
     sudut = round(math.atan2(cx,cy)*180/math.pi)
+    sudut=degree(sudut)
     print(sudut)
 
     return sudut
@@ -99,6 +98,7 @@ def cariSudutDeteksi(contour,frame):
         cx=1
 
     sudut = round(math.atan2(cx,cy)*180/math.pi)
+    sudut=degree(sudut)
     print(sudut)
 
     return sudut
@@ -106,8 +106,9 @@ def cariSudutDeteksi(contour,frame):
 
     
 
-def cariBola(frame):
-    mask = cv2.inRange(frame, LW, UP)
+def cariBola(frame,color):
+    colorBall=hsvColorBounds[color]
+    mask = cv2.inRange(frame, colorBall[0], colorBall[1])
     contours, hierarcy = cv2.findContours(mask.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
     #Return jika tidak ada contour yang ditemukan
     
@@ -150,10 +151,11 @@ def cariPartner(frame):
 while True:
     ret, frame = cap.read(0)
 
-    bola = cariBola(frame)
+    bola = cariBola(frame,'orange')
     partner = cariPartner(frame)
 
-    
+    sudut=0
+    suduts=0
     posisiBola = str("Posisi Bola {0}".format(sudut))
     posisiPartner = str("Posisi Partner {0}".format(suduts))
     cv2.putText(frame,posisiBola,(10,10),fo,0.5,w)
